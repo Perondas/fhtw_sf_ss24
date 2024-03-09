@@ -3,9 +3,6 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/services.iml" filepath="$PROJECT_DIR$/services.iml" />
-      <module fileurl="file://$PROJECT_DIR$/weather_ingress.iml" filepath="$PROJECT_DIR$/weather_ingress.iml" />
-      <module fileurl="file://$PROJECT_DIR$/.idea/modules/weather_ingress.main.iml" filepath="$PROJECT_DIR$/.idea/modules/weather_ingress.main.iml" />
-      <module fileurl="file://$PROJECT_DIR$/.idea/modules/weather_ingress.test.iml" filepath="$PROJECT_DIR$/.idea/modules/weather_ingress.test.iml" />
     </modules>
   </component>
 </project>
