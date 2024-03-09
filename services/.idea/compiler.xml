@@ -2,6 +2,9 @@
 <project version="4">
   <component name="CompilerConfiguration">
     <bytecodeTargetLevel>
+      <module name="kotlin-client" target="21" />
+      <module name="kotlin-client.main" target="21" />
+      <module name="kotlin-client.test" target="21" />
       <module name="weather_ingress" target="21" />
       <module name="weather_ingress.main" target="21" />
       <module name="weather_ingress.test" target="21" />
