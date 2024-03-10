@@ -26,12 +26,24 @@ suspend fun main() {
         for (parameter in metadata.parameters) {
             parameter("parameters", parameter.name)
         }
-        for (station in metadata.stations) {
+        for (station in metadata.stations.take(2)) {
             val stationId = station.id
             parameter("station_ids", stationId)
         }
     }.call
 
     val geoJSON = data.body<StationGeoJSONSerializer>()
-    println(geoJSON)
+
+    for (feature in geoJSON.features) {
+        val stationName = metadata.stations.find { it.id == feature.properties.station }?.name
+        println("$stationName: ")
+        for (parameter in feature.properties.parameters) {
+            val parameterName = metadata.parameters.find { it.name == parameter.key }?.longName
+            print("$parameterName: ")
+            print(parameter.value.data.joinToString { it.toString() + " " })
+            val unit = metadata.parameters.find { it.name == parameter.key }?.unit
+            println("$unit")
+        }
+        println()
+    }
 }
