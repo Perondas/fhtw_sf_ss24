@@ -1,10 +1,9 @@
 package at.fhtw
 
-import at.fhtw.model.CurrentMetadata
-import at.fhtw.model.StationGeoJSONSerializer
+import at.fhtw.model.GridForecastGeoJSONSerializer
+import at.fhtw.model.GridForecastMetadataModel
 import io.ktor.client.*
 import io.ktor.client.call.*
-import io.ktor.client.engine.*
 import io.ktor.client.engine.cio.*
 import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.client.request.*
@@ -17,33 +16,48 @@ suspend fun main() {
         }
     }
 
-    val res = client.get("https://dataset.api.hub.geosphere.at/v1/station/current/tawes-v1-10min/metadata")
-    val metadata = res.body<CurrentMetadata>()
+    val res = client.get("https://dataset.api.hub.geosphere.at/v1/grid/forecast/nwp-v1-1h-2500m/metadata")
+    val metadata = res.body<GridForecastMetadataModel>()
 
+    val atS = 46.37
+    val atW = 9.18
+    val atN = 49.02
+    val atE = 17.16
 
-    val data = client.get {
-        url("https://dataset.api.hub.geosphere.at/v1/station/current/tawes-v1-10min")
-        for (parameter in metadata.parameters) {
-            parameter("parameters", parameter.name)
+    val difN = atN - atS
+    val difE = atE - atW
+
+    val setpN = difN / 10
+    val setpE = difE / 10
+
+    for (n in atS..atN step setpN) {
+        for (e in atW..atE step setpE) {
+            val data = client.get {
+                url("https://dataset.api.hub.geosphere.at/v1/grid/forecast/nwp-v1-1h-2500m")
+                for (parameter in metadata.parameters) {
+                    parameter("parameters", parameter.name)
+                }
+
+                println("$n,$e,${n + setpN},${e + setpE}")
+                parameter("bbox", "$n,$e,${n + setpN},${e + setpE}")
+            }
+
+            val gridForecast = data.body<GridForecastGeoJSONSerializer>()
+
+            println(gridForecast)
         }
-        for (station in metadata.stations.take(2)) {
-            val stationId = station.id
-            parameter("station_ids", stationId)
-        }
-    }.call
-
-    val geoJSON = data.body<StationGeoJSONSerializer>()
-
-    for (feature in geoJSON.features) {
-        val stationName = metadata.stations.find { it.id == feature.properties.station }?.name
-        println("$stationName: ")
-        for (parameter in feature.properties.parameters) {
-            val parameterName = metadata.parameters.find { it.name == parameter.key }?.longName
-            print("$parameterName: ")
-            print(parameter.value.data.joinToString { it.toString() + " " })
-            val unit = metadata.parameters.find { it.name == parameter.key }?.unit
-            println("$unit")
-        }
-        println()
     }
+}
+
+
+infix fun ClosedRange<Double>.step(step: Double): Iterable<Double> {
+    require(start.isFinite())
+    require(endInclusive.isFinite())
+    require(step > 0.0) { "Step must be positive, was: $step." }
+    val sequence = generateSequence(start) { previous ->
+        if (previous == Double.POSITIVE_INFINITY) return@generateSequence null
+        val next = previous + step
+        if (next > endInclusive) null else next
+    }
+    return sequence.asIterable()
 }
