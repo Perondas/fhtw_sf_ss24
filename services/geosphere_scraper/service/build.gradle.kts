@@ -7,6 +7,7 @@ val ktor_version: String by project
 plugins {
     kotlin("jvm") version "1.9.22"
     id("org.jetbrains.kotlin.plugin.serialization") version "1.9.22"
+    id("io.ktor.plugin") version "2.3.2"
     application
 }
 
@@ -65,7 +66,7 @@ repositories {
 }
 
 dependencies {
-    implementation("org.apache.kafka:kafka-clients:3.7.0")
+    implementation("org.apache.kafka:kafka-streams:3.7.0")
 
     implementation("io.ktor:ktor-client-core:$ktor_version")
     implementation("io.ktor:ktor-client-cio:$ktor_version")
