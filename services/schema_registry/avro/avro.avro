@@ -1,0 +1,21 @@
+{
+  "type": "record",
+  "name": "Weather",
+  "namespace": "com.fhtw.avro",
+  "fields": [
+    {"name": "latitude", "type": "double"},
+    {"name": "longitude", "type": "double"},
+    {"name": "timezone", "type": "string"},
+    {"name": "zipCode", "type": "string"},
+    {"name": "region", "type": "string"},
+    {"name": "time", "type": {"type": "array", "items": "string"}},
+    {"name": "temperature", "type": {"type": "array", "items": "double"}},
+    {"name": "relativeHumidity", "type": {"type": "array", "items": "int"}},
+    {"name": "precipitationProbability", "type": {"type": "array", "items": "int"}},
+    {"name": "precipitation", "type": {"type": "array", "items": "double"}},
+    {"name": "rain", "type": {"type": "array", "items": "double"}},
+    {"name": "surfacePressure", "type": {"type": "array", "items": "double"}},
+    {"name": "windSpeed", "type": {"type": "array", "items": "double"}},
+    {"name": "windDirection", "type": {"type": "array", "items": "int"}}
+  ]
+}
