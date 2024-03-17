@@ -20,6 +20,8 @@ java {
 }
 
 dependencies {
+    implementation("org.apache.kafka:kafka-clients:3.7.0")
+
     implementation("io.ktor:ktor-client-core:$ktor_version")
     implementation("io.ktor:ktor-client-cio:$ktor_version")
     implementation("io.ktor:ktor-client-logging:$ktor_version")
