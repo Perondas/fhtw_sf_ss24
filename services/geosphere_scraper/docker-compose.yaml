@@ -1,0 +1,13 @@
+version: '3'
+
+networks:
+  kafka-net:
+    external: true
+
+services:
+  geosphere-scraper:
+    build:
+      context: service
+      dockerfile: Dockerfile
+    networks:
+      - kafka-net

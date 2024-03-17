@@ -6,7 +6,8 @@ val ktor_version: String by project
 
 plugins {
     kotlin("jvm") version "1.9.22"
-    //id("org.jetbrains.kotlin.plugin.serialization") version "1.9.22"
+    id("org.jetbrains.kotlin.plugin.serialization") version "1.9.22"
+    id("io.ktor.plugin") version "2.3.2"
     application
 }
 
@@ -60,19 +61,18 @@ tasks.create("generateServer") {
     }
 }
 
-kotlin.sourceSets["main"].kotlin.srcDir("${layout.buildDirectory.get()}/generated/src/main/kotlin")
-
-
 repositories {
     mavenCentral()
 }
 
 dependencies {
-    implementation("org.apache.kafka:kafka-clients:3.7.0")
+    implementation("org.apache.kafka:kafka-streams:3.7.0")
 
-    implementation ("com.squareup.okhttp3:okhttp:4.9.0")
-    implementation ("com.squareup.moshi:moshi-kotlin:1.15.1")
-    implementation( "com.squareup.moshi:moshi-adapters:1.15.1")
+    implementation("io.ktor:ktor-client-core:$ktor_version")
+    implementation("io.ktor:ktor-client-cio:$ktor_version")
+    implementation("io.ktor:ktor-client-logging:$ktor_version")
+    implementation("io.ktor:ktor-serialization-kotlinx-json:$ktor_version")
+    implementation("io.ktor:ktor-client-content-negotiation:$ktor_version")
 
     implementation("io.github.oshai:kotlin-logging-jvm:5.1.0")
     implementation("ch.qos.logback:logback-classic:1.4.14")
