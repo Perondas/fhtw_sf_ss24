@@ -18,7 +18,7 @@ suspend fun main() {
     val producer = configureProducer()
 
     producer.use {
-        it.send(ProducerRecord("aggregateTopic", "1", "{aggregate}"))
+        it.send(ProducerRecord("meteoWeather", "weather", weatherData.toString()))
     }
 }
 
@@ -48,7 +48,7 @@ private suspend fun retrieveWeather(): WeatherResponse {
 
 private fun configureProducer(): KafkaProducer<String, String> {
     val producerProps = mapOf(
-        ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG to "kafka1:9092",
+        ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG to "localhost:9094",
         "key.serializer" to "org.apache.kafka.common.serialization.StringSerializer",
         "value.serializer" to "org.apache.kafka.common.serialization.StringSerializer",
         "security.protocol" to "PLAINTEXT"
