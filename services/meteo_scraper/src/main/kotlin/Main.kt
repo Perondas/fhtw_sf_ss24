@@ -1,5 +1,6 @@
 package at.fhtw
 
+import com.fhtw.protobuf.WeatherData
 import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.engine.cio.*
@@ -12,13 +13,19 @@ import org.apache.kafka.clients.producer.KafkaProducer
 import org.apache.kafka.clients.producer.ProducerRecord
 
 suspend fun main() {
-    val weatherData = retrieveWeather()
-    println(weatherData)
+    val weatherResponse = retrieveWeather()
+    println(weatherResponse)
+
+    // Use protobuf generated class
+    val weather: WeatherData.Weather = WeatherData.Weather.newBuilder()
+        .setLatitude(40.7128)
+        .setLongitude(-74.0060)
+        .build()
 
     val producer = configureProducer()
 
     producer.use {
-        it.send(ProducerRecord("meteoWeather", "weather", weatherData.toString()))
+        it.send(ProducerRecord("meteoWeather", "weather", weatherResponse.toString()))
     }
 }
 
@@ -50,8 +57,9 @@ private fun configureProducer(): KafkaProducer<String, String> {
     val producerProps = mapOf(
         ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG to "localhost:9094",
         "key.serializer" to "org.apache.kafka.common.serialization.StringSerializer",
-        "value.serializer" to "org.apache.kafka.common.serialization.StringSerializer",
-        "security.protocol" to "PLAINTEXT"
+        "value.serializer" to "io.confluent.kafka.serializers.protobuf.KafkaProtobufSerializer", // needed for protobuf serialization
+        "security.protocol" to "PLAINTEXT",
+        "schema.registry.url" to "http://localhost:8081"
     )
 
     return KafkaProducer(producerProps)
