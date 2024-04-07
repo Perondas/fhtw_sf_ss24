@@ -16,6 +16,7 @@ version = "1.0-SNAPSHOT"
 
 repositories {
     mavenCentral()
+    maven(url = "https://packages.confluent.io/maven/")
 }
 
 java {
@@ -27,6 +28,7 @@ protobuf {
     protoc {
         artifact = "com.google.protobuf:protoc:3.19.+"
     }
+    generatedFilesBaseDir = "${project.buildDir}/generatedProto"
 }
 
 dependencies {
@@ -42,6 +44,7 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:$kotlinx_serialization_version")
 
     implementation("com.google.protobuf:protobuf-java:3.19.+")
+    implementation("io.confluent:kafka-protobuf-serializer:7.6.0")
 }
 
 tasks.test {
