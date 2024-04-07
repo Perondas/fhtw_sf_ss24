@@ -1,19 +1,18 @@
 package org.example
 
+import org.example.protobuf.WeatherData.Weather
 import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.engine.cio.*
 import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.client.request.*
 import io.ktor.serialization.kotlinx.json.*
-import org.apache.kafka.clients.producer.Producer
+import org.apache.kafka.clients.producer.KafkaProducer
+import org.apache.kafka.clients.producer.ProducerConfig
 import org.apache.kafka.clients.producer.ProducerRecord
-import org.apache.kafka.clients.producer.RecordMetadata
 import org.example.model.HourlyForecastResponse
-import kotlin.coroutines.resume
-import kotlin.coroutines.resumeWithException
-import kotlin.coroutines.suspendCoroutine
-import org.example.ExcelHandler as ExcelHandler
+import java.util.*
+
 //TIP To <b>Run</b> code, press <shortcut actionId="Run"/> or
 // click the <icon src="AllIcons.Actions.Execute"/> icon in the gutter.
 suspend fun main() {
@@ -27,7 +26,7 @@ suspend fun main() {
     println(coordinateData)
 
     val apiKey = "b1732995491144f25f24a6333dd3a5f6"
-    var baseURL = "https://api.openweathermap.org/data/"
+    val baseURL = "https://api.openweathermap.org/data/"
     val version = "2.5"
 
     val apiCurrentForecastURL = "$baseURL$version/forecast"
@@ -45,62 +44,23 @@ suspend fun main() {
 
     client.close()
 
-//    val producerProperties = mapOf<String, String>(
-//        "key.serializer" to "org.apache.kafka.common.serialization.StringSerializer",
-//        "value.serializer" to "org.apache.kafka.common.serialization.ByteArraySerializer",
-//        "security.protocol" to "PLAINTEXT"
-//    )
+    val weather: Weather = Weather.newBuilder()
+        .setLatitude(data.city.coord.lat)
+        .setLongitude(data.city.coord.lon)
+        .setTimezone(data.city.timezone.toString())
+        .build()
 
+    val props = Properties()
+    props[ProducerConfig.BOOTSTRAP_SERVERS_CONFIG] = "localhost:9094"
+    props[ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG] = "org.apache.kafka.common.serialization.StringSerializer"
+    props[ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG] =
+        "io.confluent.kafka.serializers.protobuf.KafkaProtobufSerializer"
+    props["schema.registry.url"] = "http://127.0.0.1:8081"
 
-//    //TODO: do it for each
-//    val tl = client.get {
-//        url(apiCurrentForecastURL)
-//        parameter("lat", "48.21451155")
-//        parameter("lon", "16.52368505")
-//        parameter("appid", apiKey)
-//        parameter("units", "metric")
-//    }.call.body<JsonObject>()
-//
-//    val list = tl["list"]?.jsonArray
-//
-//    for (property in list!!.map { it.jsonObject }) {
-//        val dateTime = property.get("dt_txt")?.jsonPrimitive?.content
-//        val temp = property.get("main")?.jsonObject?.get("temp")?.jsonPrimitive?.content
-//
-//        println("At $dateTime the temp was $temp")
-//    }
+    val producer = KafkaProducer<String, Weather>(props)
 
-//    val producerProperties = mapOf<String, String>(
-//        "key.serializer" to "org.apache.kafka.common.serialization.StringSerializer",
-//        "value.serializer" to "org.apache.kafka.common.serialization.ByteArraySerializer",
-//        "security.protocol" to "PLAINTEXT"
-//    )
-//
-//    val producer = KafkaProducer<String, ByteArray>(producerProperties)
-//
+    val record: ProducerRecord<String, Weather> = ProducerRecord<String, Weather>("openWeather", "weather", weather)
 
-//
-//    producer.use {
-//        it.send(ProducerRecord("test", "1", "Hello, world!".encodeToByteArray()))
-//    }
-}
-
-suspend fun <K, V> Producer<K, V>.asyncSend(record: ProducerRecord<K, V>) =
-    suspendCoroutine<RecordMetadata> { continuation ->
-        send(record) { metadata, exception ->
-            exception?.let(continuation::resumeWithException)
-                ?: continuation.resume(metadata)
-        }
-    }
-
-infix fun ClosedRange<Double>.step(step: Double): Iterable<Double> {
-    require(start.isFinite())
-    require(endInclusive.isFinite())
-    require(step > 0.0) { "Step must be positive, was: $step." }
-    val sequence = generateSequence(start) { previous ->
-        if (previous == Double.POSITIVE_INFINITY) return@generateSequence null
-        val next = previous + step
-        if (next > endInclusive) null else next
-    }
-    return sequence.asIterable()
+    producer.send(record).get()
+    producer.close()
 }
