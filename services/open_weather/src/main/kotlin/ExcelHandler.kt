@@ -23,7 +23,7 @@ class ExcelHandler {
         val workSheet = workbook.getSheetAt(3);
 
         val coordinatesModel: MutableList<CoordinateModel> = mutableListOf()
-        val lastNumber = workSheet.lastRowNum
+//        val lastNumber = workSheet.lastRowNum
 
         for (i in 2..workSheet.physicalNumberOfRows) {
 //            if ( row.rowNum <= 3 ) { continue }

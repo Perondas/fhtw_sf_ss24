@@ -1,11 +1,16 @@
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+
+import com.google.protobuf.gradle.protobuf
+import com.google.protobuf.gradle.protoc
 
 val ktor_version: String by project
+val kotlinx_serialization_version: String by project
 val testcontainersVersion = "1.19.7"
 
 plugins {
     kotlin("jvm") version "1.9.22"
     id("org.jetbrains.kotlin.plugin.serialization") version "1.9.22"
+    id("com.google.protobuf") version "0.8.+"
+    application
 }
 
 java {
@@ -24,6 +29,14 @@ version = "1.0-SNAPSHOT"
 
 repositories {
     mavenCentral()
+    maven(url = "https://packages.confluent.io/maven/")
+}
+
+protobuf {
+    protoc {
+        artifact = "com.google.protobuf:protoc:3.19.+"
+    }
+    generatedFilesBaseDir = "${getLayout().buildDirectory}/generatedProto"
 }
 
 dependencies {
@@ -45,6 +58,11 @@ dependencies {
     testImplementation("org.testcontainers:junit-jupiter:$testcontainersVersion")
     testImplementation("org.testcontainers:kafka:$testcontainersVersion")
     testImplementation("org.jetbrains.kotlin:kotlin-test")
+
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:$kotlinx_serialization_version")
+
+    implementation("com.google.protobuf:protobuf-java:3.19.+")
+    implementation("io.confluent:kafka-protobuf-serializer:7.6.0")
 }
 
 tasks.test {
