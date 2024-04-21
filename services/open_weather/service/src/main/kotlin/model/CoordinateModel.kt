@@ -1,4 +1,4 @@
-package org.example.model
+package at.fhtw.model
 
 import java.util.Date
 

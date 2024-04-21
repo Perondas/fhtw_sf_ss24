@@ -10,6 +10,7 @@ plugins {
     kotlin("jvm") version "1.9.22"
     id("org.jetbrains.kotlin.plugin.serialization") version "1.9.22"
     id("com.google.protobuf") version "0.8.+"
+    id("io.ktor.plugin") version "2.3.2"
     application
 }
 
@@ -36,7 +37,6 @@ protobuf {
     protoc {
         artifact = "com.google.protobuf:protoc:3.19.+"
     }
-    generatedFilesBaseDir = "${getLayout().buildDirectory}/generatedProto"
 }
 
 dependencies {
@@ -50,8 +50,6 @@ dependencies {
 
     implementation("io.github.oshai:kotlin-logging-jvm:5.1.0")
     implementation("ch.qos.logback:logback-classic:1.4.14")
-    implementation("org.apache.poi:poi:5.2.3")
-    implementation("org.apache.poi:poi-ooxml:5.2.3")
 
     testImplementation("org.junit.jupiter:junit-jupiter:5.8.1")
     testImplementation("org.testcontainers:testcontainers:$testcontainersVersion")

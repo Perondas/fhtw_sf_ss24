@@ -1,8 +1,7 @@
-package org.example.model
+package at.fhtw.model
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import java.util.TimeZone
 
 @Serializable
 data class Main(
