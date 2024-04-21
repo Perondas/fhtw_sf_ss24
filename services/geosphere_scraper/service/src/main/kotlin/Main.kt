@@ -9,6 +9,12 @@ import io.ktor.client.engine.cio.*
 import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.client.request.*
 import io.ktor.serialization.kotlinx.json.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.launch
+import org.apache.kafka.clients.admin.AdminClient
+import org.apache.kafka.clients.admin.NewTopic
 import org.apache.kafka.clients.consumer.ConsumerConfig
 import org.apache.kafka.clients.producer.KafkaProducer
 import org.apache.kafka.clients.producer.Producer
@@ -16,34 +22,38 @@ import org.apache.kafka.clients.producer.ProducerRecord
 import org.apache.kafka.clients.producer.RecordMetadata
 import java.time.format.TextStyle
 import java.util.*
+import kotlin.concurrent.timer
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import kotlin.coroutines.suspendCoroutine
 
 data class Location(val zipCode: String, val name: String, val lat: Double, val lon: Double)
 
+const val TopicName = "geosphere-data"
+
 suspend fun main() {
     val csv = object {}.javaClass.getResourceAsStream("/short-plz-coord-austria.csv")?.bufferedReader()?.readText()
         ?: throw IllegalStateException("Could not read CSV file")
 
-    val locations = csv
-        .split('\n')
-        .map { it.trim() }
-        .filter { it.isNotBlank() }
-        .map {
-            val parts = it.split(';')
-            Location(parts[0], parts[1], parts[3].toDouble(), parts[4].toDouble())
-        }
+    val locations = csv.split('\n').map { it.trim() }.filter { it.isNotBlank() }.map {
+        val parts = it.split(';')
+        Location(parts[0], parts[1], parts[3].toDouble(), parts[4].toDouble())
+    }
 
-    val producerProps = mapOf(
-        ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG to "kafka1:9092",
+    val props = mapOf(
+        ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG to (System.getenv("KAFKA_SERVER") ?: "localhost:9094"),
         "key.serializer" to "org.apache.kafka.common.serialization.StringSerializer",
         "value.serializer" to "io.confluent.kafka.serializers.protobuf.KafkaProtobufSerializer",
         "security.protocol" to "PLAINTEXT",
-        "schema.registry.url" to "http://127.0.0.1:8081",
+        "schema.registry.url" to (System.getenv("SCHEMA_SERVER") ?: "localhost:8081"),
     )
 
-    val producer = KafkaProducer<String, Weather>(producerProps)
+    val adminClient = AdminClient.create(props);
+
+    val cluster = adminClient.describeCluster()
+    adminClient.createTopics(listOf(NewTopic(TopicName, 3, 2))).all().get()
+
+    val producer = KafkaProducer<String, Weather>(props)
 
     val client = HttpClient(CIO) {
         install(ContentNegotiation) {
@@ -51,14 +61,24 @@ suspend fun main() {
         }
     }
 
-    val res = client.get("https://dataset.api.hub.geosphere.at/v1/timeseries/forecast/nwp-v1-1h-2500m/metadata")
-    val metadata = res.body<GridForecastMetadataModel>()
+    // Every 12 hours
+    timer(period = 1000 * 60 * 60 * 12, daemon = true) {
+        CoroutineScope(Dispatchers.IO).launch {
+            scrapeData(locations, client, producer)
+        }
+    }
 
+    awaitCancellation()
+}
+
+private suspend fun scrapeData(locations: List<Location>, client: HttpClient, producer: Producer<String, Weather>) {
+    // We chunk the locations into groups of 30 to avoid hitting the API rate limit
     for (locationC in locations.chunked(30)) {
         val res = client.get("https://dataset.api.hub.geosphere.at/v1/timeseries/forecast/nwp-v1-1h-2500m") {
-            for (param in metadata.parameters) {
-                parameter("parameters", param.name)
-            }
+            parameter("parameters", "t2m")
+            parameter("parameters", "rh2m")
+            parameter("parameters", "rr_acc")
+            parameter("parameters", "sp")
 
             for (location in locationC) {
                 parameter("lat_lon", "${location.lat},${location.lon}")
@@ -89,7 +109,7 @@ suspend fun main() {
 
                 val data = b.build()
 
-                producer.asyncSend(ProducerRecord("geosphere-data", key, data))
+                producer.asyncSend(ProducerRecord(TopicName, key, data))
             }
         }
     }

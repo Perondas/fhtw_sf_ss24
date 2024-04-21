@@ -9,5 +9,8 @@ services:
     build:
       context: service
       dockerfile: Dockerfile
+    environment:
+      - KAFKA_SERVER=kafka1:9092
+      - SCHEMA_SERVER=http://schema-registry:8081
     networks:
       - kafka-net
