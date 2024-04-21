@@ -11,7 +11,7 @@ plugins {
     application
 }
 
-group = "org.example"
+group = "at.fhtw"
 version = "1.0-SNAPSHOT"
 
 repositories {

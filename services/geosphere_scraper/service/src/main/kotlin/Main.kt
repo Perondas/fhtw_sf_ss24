@@ -1,6 +1,5 @@
 package at.fhtw
 
-import at.fhtw.model.GridForecastMetadataModel
 import at.fhwt.model.TimeseriesForecastGeoJSONSerializer
 import com.fhtw.protobuf.WeatherData.Weather
 import io.ktor.client.*
@@ -50,7 +49,6 @@ suspend fun main() {
 
     val adminClient = AdminClient.create(props);
 
-    val cluster = adminClient.describeCluster()
     adminClient.createTopics(listOf(NewTopic(TopicName, 3, 2))).all().get()
 
     val producer = KafkaProducer<String, Weather>(props)

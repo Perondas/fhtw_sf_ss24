@@ -59,10 +59,16 @@ private suspend fun scrapeMeteo(locations: List<Location>, client: HttpClient, p
         println(weatherResponse)
 
         val weather: Weather =
-            Weather.newBuilder().setLatitude(weatherResponse.latitude).setLongitude(weatherResponse.latitude)
-                .setTimezone(weatherResponse.timezone).setZipCode(location.zipCode).setRegion(location.name).build()
+            Weather.newBuilder()
+                .setLatitude(weatherResponse.latitude)
+                .setLongitude(weatherResponse.latitude)
+                .setTimezone(weatherResponse.timezone)
+                .setZipCode(location.zipCode)
+                .setRegion(location.name)
+                // TODO: Add the rest of the fields
+                .build()
 
-        // TODO: Get the correct time for the prediction
+        // TODO: Add time of predictions in epoch seconds
         val key = "meteo-${location.zipCode}-${Date().time}"
 
         producer.asyncSend(ProducerRecord(TopicName, key, weather))
