@@ -18,13 +18,9 @@ message Weather {
   string timezone = 3;
   string zipCode = 4;
   string region = 5;
-  repeated string time = 6;
-  repeated double temperature = 7;
-  repeated int32 relativeHumidity = 8;
-  repeated int32 precipitationProbability = 9;
-  repeated double precipitation = 10;
-  repeated double rain = 11;
-  repeated double surfacePressure = 12;
-  repeated double windSpeed = 13;
-  repeated int32 windDirection = 14;
+  int64 time = 6;
+  double temperature = 7;
+  double relativeHumidity = 8;
+  double precipitation = 10;
+  double surfacePressure = 12;
 }
