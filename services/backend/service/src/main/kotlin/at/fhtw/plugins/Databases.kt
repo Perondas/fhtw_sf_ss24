@@ -9,12 +9,16 @@ import io.confluent.kafka.serializers.protobuf.KafkaProtobufDeserializerConfig.S
 import java.sql.*
 import kotlinx.coroutines.*
 import org.apache.kafka.clients.consumer.ConsumerConfig
+import org.apache.kafka.clients.consumer.KafkaConsumer
+import org.apache.kafka.clients.consumer.OffsetAndMetadata
+import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.common.serialization.Serdes
 import org.apache.kafka.streams.KafkaStreams
 import org.apache.kafka.streams.StreamsBuilder
 import org.apache.kafka.streams.StreamsConfig
 import org.apache.kafka.streams.kstream.Consumed
 import org.apache.kafka.streams.kstream.KStream
+import java.time.Duration
 
 fun Application.configureDatabases() {
     val connection = connectToPostgres()
@@ -37,30 +41,41 @@ fun Application.configureDatabases() {
         "schema.registry.url" to (System.getenv("SCHEMA_SERVER") ?: "http://localhost:8081"),
         "application.id" to "backend1",
         StreamsConfig.DEFAULT_KEY_SERDE_CLASS_CONFIG to Serdes.String().javaClass.name,
-        StreamsConfig.DEFAULT_VALUE_SERDE_CLASS_CONFIG to specificWeatherSerde.javaClass.name
+        StreamsConfig.DEFAULT_VALUE_SERDE_CLASS_CONFIG to specificWeatherSerde.javaClass.name,
+        "enable.auto.commit" to "false"
     ).toProperties()
 
-    val builder = StreamsBuilder()
+    val consumer =
+        KafkaConsumer<String, Weather>(props, Serdes.String().deserializer(), specificWeatherSerde.deserializer())
+    consumer.subscribe(listOf("weather-data"))
 
-    val weatherData: KStream<String, Weather> = builder.stream("weather-data", Consumed.with(Serdes.String(),  specificWeatherSerde))
-
-    weatherData.foreach { _, value ->
-        launch {
-            weatherService.create(WeatherDto.fromProto(value))
+    launch {
+        while (true) {
+            val records = consumer.poll(Duration.ofMillis(1000))
+            try {
+                for (record in records) {
+                    val weather = record.value()
+                    weatherService.create(WeatherDto.fromProto(weather))
+                    val commitEntry: Map<TopicPartition, OffsetAndMetadata> = mapOf(
+                        TopicPartition(record.topic(), record.partition()) to OffsetAndMetadata(record.offset())
+                    )
+                    consumer.commitSync(commitEntry)
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
         }
     }
 
-    weatherData.process()
-
-    KafkaStreams(builder.build(), props).start()
 }
+
 
 
 fun connectToPostgres(): Connection {
     Class.forName("org.postgresql.Driver")
     val url = System.getenv("POSTGRES_URL") ?: "jdbc:postgresql://localhost:5432/db"
     val user = System.getenv("POSTGRES_USER") ?: "user"
-    val password = System.getenv("POSTGRES_PASSWORD")?: "password"
+    val password = System.getenv("POSTGRES_PASSWORD") ?: "password"
 
     return DriverManager.getConnection(url, user, password)
 }
