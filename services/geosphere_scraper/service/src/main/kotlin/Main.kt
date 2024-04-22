@@ -44,12 +44,15 @@ suspend fun main() {
         "key.serializer" to "org.apache.kafka.common.serialization.StringSerializer",
         "value.serializer" to "io.confluent.kafka.serializers.protobuf.KafkaProtobufSerializer",
         "security.protocol" to "PLAINTEXT",
-        "schema.registry.url" to (System.getenv("SCHEMA_SERVER") ?: "localhost:8081"),
+        "schema.registry.url" to (System.getenv("SCHEMA_SERVER") ?: "http://localhost:8081"),
     )
 
     val adminClient = AdminClient.create(props);
 
-    adminClient.createTopics(listOf(NewTopic(TopicName, 3, 2))).all().get()
+    if (!adminClient.listTopics().names().get().contains(TopicName)) {
+        adminClient.createTopics(listOf(NewTopic(TopicName, 3, 2))).all().get()
+    }
+    adminClient.close()
 
     val producer = KafkaProducer<String, Weather>(props)
 

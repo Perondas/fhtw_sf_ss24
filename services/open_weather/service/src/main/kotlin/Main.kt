@@ -59,7 +59,10 @@ suspend fun main() {
     val apiCurrentForecastURL = "$baseURL$version/forecast"
 
     val adminClient = AdminClient.create(props)
-    adminClient.createTopics(listOf(NewTopic(TopicName, 3, 2))).all().get()
+    if (!adminClient.listTopics().names().get().contains(TopicName)) {
+        adminClient.createTopics(listOf(NewTopic(TopicName, 3, 2))).all().get()
+    }
+    adminClient.close()
 
     val producer = KafkaProducer<String, Weather>(props)
 

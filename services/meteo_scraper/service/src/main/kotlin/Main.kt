@@ -9,6 +9,7 @@ import io.ktor.client.request.*
 import io.ktor.serialization.kotlinx.json.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.launch
 import model.WeatherResponse
 import org.apache.kafka.clients.admin.AdminClient
@@ -35,7 +36,10 @@ suspend fun main() {
     }
 
     val adminClient = configureAdminClient()
-    adminClient.createTopics(listOf(NewTopic(TopicName, 3, 2))).all().get()
+    if (!adminClient.listTopics().names().get().contains(TopicName)) {
+        adminClient.createTopics(listOf(NewTopic(TopicName, 3, 2))).all().get()
+    }
+    adminClient.close()
 
     val producer = configureProducer()
 
@@ -51,6 +55,8 @@ suspend fun main() {
             scrapeMeteo(locations, client, producer)
         }
     }
+
+    awaitCancellation()
 }
 
 private suspend fun scrapeMeteo(locations: List<Location>, client: HttpClient, producer: Producer<String, Weather>) {

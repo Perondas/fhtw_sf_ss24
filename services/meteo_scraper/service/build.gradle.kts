@@ -1,13 +1,10 @@
-import com.google.protobuf.gradle.protobuf
-import com.google.protobuf.gradle.protoc
-
 val ktor_version: String by project
 val kotlinx_serialization_version: String by project
 
 plugins {
     kotlin("jvm") version "1.9.22"
     id("org.jetbrains.kotlin.plugin.serialization") version "1.5.31"
-    id("com.google.protobuf") version "0.8.+"
+    id("com.google.protobuf") version "0.9.4"
     application
 }
 

@@ -1,15 +1,13 @@
 import io.swagger.codegen.v3.DefaultGenerator
 import io.swagger.codegen.v3.config.CodegenConfigurator
 import io.swagger.v3.parser.OpenAPIV3Parser
-import com.google.protobuf.gradle.protobuf
-import com.google.protobuf.gradle.protoc
 
 val ktor_version: String by project
 
 plugins {
     kotlin("jvm") version "1.9.22"
     id("org.jetbrains.kotlin.plugin.serialization") version "1.9.22"
-    id("com.google.protobuf") version "0.8.+"
+    id("com.google.protobuf") version "0.9.4"
     id("io.ktor.plugin") version "2.3.2"
     application
 }
