@@ -17,9 +17,12 @@ repositories {
     maven(url = "https://packages.confluent.io/maven/")
 }
 
-java {
-    sourceCompatibility = JavaVersion.VERSION_21
-    targetCompatibility = JavaVersion.VERSION_21
+kotlin {
+    jvmToolchain(21)
+}
+
+application {
+    mainClass.set("at.fhtw.MainKt")
 }
 
 protobuf {
@@ -41,13 +44,12 @@ dependencies {
 
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:$kotlinx_serialization_version")
 
+    implementation("ch.qos.logback:logback-classic:1.4.14")
+
     implementation("com.google.protobuf:protobuf-java:3.19.+")
     implementation("io.confluent:kafka-protobuf-serializer:7.6.0")
 }
 
 tasks.test {
     useJUnitPlatform()
-}
-kotlin {
-    jvmToolchain(21)
 }

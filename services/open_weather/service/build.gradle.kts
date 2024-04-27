@@ -25,6 +25,10 @@ tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach 
 group = "at.fhtw"
 version = "1.0-SNAPSHOT"
 
+application {
+    mainClass.set("at.fhtw.MainKt")
+}
+
 repositories {
     mavenCentral()
     maven(url = "https://packages.confluent.io/maven/")
