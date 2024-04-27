@@ -5,6 +5,7 @@ plugins {
     kotlin("jvm") version "1.9.22"
     id("org.jetbrains.kotlin.plugin.serialization") version "1.5.31"
     id("com.google.protobuf") version "0.9.4"
+    id("io.ktor.plugin") version "2.3.2"
     application
 }
 
