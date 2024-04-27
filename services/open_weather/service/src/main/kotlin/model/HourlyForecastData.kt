@@ -6,14 +6,8 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class Main(
     val temp: Double,
-    val feels_like: Double,
-    val temp_min: Double,
-    val temp_max: Double,
     val pressure: Int,
-    val sea_level : Int,
-    val grnd_level : Int,
     val humidity : Int,
-    val temp_kf : Double,
 )
 
 @Serializable
@@ -49,15 +43,8 @@ data class System(
 
 @Serializable
 data class WeatherData(
-    val dt: Long,
     val main: Main,
-    val weather: List<Weather>,
-    val clouds: Clouds,
-    val wind: Wind,
-    val visibility: Int,
-    val pop: Double,
     val rain: Rain? = null,
-    val sys: System,
     val dt_txt: String
 )
 
