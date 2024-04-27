@@ -52,7 +52,7 @@ suspend fun main() {
 
     val client = HttpClient(CIO) {
         install(ContentNegotiation) {
-            Json { ignoreUnknownKeys = true }
+            json(Json { ignoreUnknownKeys = true })
         }
     }
 
