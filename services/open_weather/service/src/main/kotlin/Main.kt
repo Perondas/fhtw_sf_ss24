@@ -19,6 +19,9 @@ import org.apache.kafka.clients.admin.NewTopic
 import org.apache.kafka.clients.producer.Producer
 import org.apache.kafka.clients.producer.ProducerRecord
 import org.apache.kafka.clients.producer.RecordMetadata
+import java.time.LocalDateTime
+import java.time.ZoneOffset
+import java.time.format.DateTimeFormatter
 import java.util.*
 import kotlin.concurrent.timer
 import kotlin.coroutines.resume
@@ -92,20 +95,32 @@ private suspend fun scrapeData(
         }
         val data = res.body<HourlyForecastResponse>()
 
-        val b = Weather.newBuilder()
+        val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
 
-        b.setLatitude(location.lat)
-        b.setLongitude(location.lon)
-        b.setTimezone(data.cnt)
-        b.setZipCode(location.zipCode)
-        b.setRegion(location.name)
+        for (weather in data.list) {
+            val builder = Weather.newBuilder()
+
+            val dateTime = LocalDateTime.parse(weather.dt_txt, formatter)
+            val timestamp = dateTime.toEpochSecond(ZoneOffset.UTC)
+            builder.setLatitude(location.lat)
+            builder.setLongitude(location.lon)
+            builder.setZipCode(location.zipCode)
+            builder.setRegion(location.name)
+            builder.setTimezone(data.city.timezone.toString()) //TODO: has to be discussed
 
         // TODO: Add the rest of the fields
 
-        // TODO: Add time of predictions in epoch seconds
-        val key = "open-${location.zipCode}-${timestamp.toInstant().epochSecond}"
+            builder.setTime(timestamp)
+            builder.setTemperature(weather.main.temp)
+            builder.setRelativeHumidity(weather.main.humidity.toDouble()) //There is no other
+            builder.setPrecipitation(weather.rain.threeHours)
+            builder.setSurfacePressure(weather.main.pressure.toDouble())
 
-        producer.asyncSend(ProducerRecord(TopicName, key, data))
+            // TODO: Add time of predictions in epoch seconds
+            val key = "open-${location.zipCode}-${timestamp}"
+
+            producer.asyncSend(ProducerRecord(TopicName, key, builder.build()))
+        }
     }
 }
 

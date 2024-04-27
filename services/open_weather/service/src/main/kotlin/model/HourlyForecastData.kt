@@ -9,7 +9,7 @@ data class Main(
     val feels_like: Double,
     val temp_min: Double,
     val temp_max: Double,
-    val pressure: Int?,
+    val pressure: Int,
     val sea_level : Int,
     val grnd_level : Int,
     val humidity : Int,
@@ -39,7 +39,7 @@ data class Wind(
 @Serializable
 data class Rain(
     @SerialName("3h")
-    val threeHours: Double?
+    val threeHours: Double
 )
 
 @Serializable
@@ -49,14 +49,14 @@ data class System(
 
 @Serializable
 data class WeatherData(
-    val dt: Int,
+    val dt: Long,
     val main: Main,
     val weather: List<Weather>,
     val clouds: Clouds,
     val wind: Wind,
     val visibility: Int,
     val pop: Double,
-    val rain: Rain? = null,
+    val rain: Rain,
     val sys: System,
     val dt_txt: String
 )
