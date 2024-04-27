@@ -5,7 +5,7 @@ networks:
     external: true
 
 services:
-  geosphere-scraper:
+  meteo-scraper:
     build:
       context: service
       dockerfile: Dockerfile

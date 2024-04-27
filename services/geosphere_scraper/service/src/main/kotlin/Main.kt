@@ -1,119 +1,124 @@
 package at.fhtw
 
-import at.fhtw.model.GridForecastGeoJSONSerializer
-import at.fhtw.model.GridForecastMetadataModel
+import at.fhwt.model.TimeseriesForecastGeoJSONSerializer
+import com.fhtw.protobuf.WeatherData.Weather
 import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.engine.cio.*
 import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.client.request.*
 import io.ktor.serialization.kotlinx.json.*
-import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonObject
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.launch
+import org.apache.kafka.clients.admin.AdminClient
+import org.apache.kafka.clients.admin.NewTopic
 import org.apache.kafka.clients.consumer.ConsumerConfig
-import org.apache.kafka.clients.producer.*
-import org.apache.kafka.common.serialization.Serdes
-import org.apache.kafka.streams.KafkaStreams
-import org.apache.kafka.streams.StreamsBuilder
-import org.apache.kafka.streams.StreamsConfig
-import org.apache.kafka.streams.kstream.Consumed
-import org.apache.kafka.streams.kstream.KStream
-import org.slf4j.event.Level
+import org.apache.kafka.clients.producer.KafkaProducer
+import org.apache.kafka.clients.producer.Producer
+import org.apache.kafka.clients.producer.ProducerRecord
+import org.apache.kafka.clients.producer.RecordMetadata
+import java.time.format.TextStyle
 import java.util.*
+import kotlin.concurrent.timer
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import kotlin.coroutines.suspendCoroutine
 
+data class Location(val zipCode: String, val name: String, val lat: Double, val lon: Double)
+
+const val TopicName = "geosphere-data"
+
 suspend fun main() {
+    val csv = object {}.javaClass.getResourceAsStream("/short-plz-coord-austria.csv")?.bufferedReader()?.readText()
+        ?: throw IllegalStateException("Could not read CSV file")
+
+    val locations = csv.split('\n').map { it.trim() }.filter { it.isNotBlank() }.map {
+        val parts = it.split(';')
+        Location(parts[0], parts[1], parts[3].toDouble(), parts[4].toDouble())
+    }
+
+    val props = mapOf(
+        ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG to (System.getenv("KAFKA_SERVER") ?: "localhost:9094"),
+        "key.serializer" to "org.apache.kafka.common.serialization.StringSerializer",
+        "value.serializer" to "io.confluent.kafka.serializers.protobuf.KafkaProtobufSerializer",
+        "security.protocol" to "PLAINTEXT",
+        "schema.registry.url" to (System.getenv("SCHEMA_SERVER") ?: "http://localhost:8081"),
+    )
+
+    val adminClient = AdminClient.create(props);
+
+    if (!adminClient.listTopics().names().get().contains(TopicName)) {
+        adminClient.createTopics(listOf(NewTopic(TopicName, 3, 2))).all().get()
+    }
+    adminClient.close()
+
+    val producer = KafkaProducer<String, Weather>(props)
+
     val client = HttpClient(CIO) {
         install(ContentNegotiation) {
             json()
         }
     }
 
-    val producerProps = mapOf(
-        ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG to "kafka1:9092",
-        "key.serializer" to "org.apache.kafka.common.serialization.StringSerializer",
-        "value.serializer" to "org.apache.kafka.common.serialization.StringSerializer",
-        "security.protocol" to "PLAINTEXT"
-    )
-
-    val producer = KafkaProducer<String, String>(producerProps)
-
-    val res = client.get("https://dataset.api.hub.geosphere.at/v1/grid/forecast/nwp-v1-1h-2500m/metadata")
-    val metadata = res.body<GridForecastMetadataModel>()
-
-    val atS = 46.37
-    val atW = 9.18
-    val atN = 49.02
-    val atE = 17.16
-
-    val difN = atN - atS
-    val difE = atE - atW
-
-    val setpN = difN / 10
-    val setpE = difE / 10
-
-    for (n in atS..atN step setpN) {
-        for (e in atW..atE step setpE) {
-            val data = client.get {
-                url("https://dataset.api.hub.geosphere.at/v1/grid/forecast/nwp-v1-1h-2500m")
-                for (parameter in metadata.parameters) {
-                    parameter("parameters", parameter.name)
-                }
-
-                println("$n,$e,${n + setpN},${e + setpE}")
-                parameter("bbox", "$n,$e,${n + setpN},${e + setpE}")
-            }
-
-            val gridForecast = data.body<GridForecastGeoJSONSerializer>()
-
-            gridForecast.timestamps.forEachIndexed { index, forecastTime ->
-                for (feature in gridForecast.features) {
-                    val key = "${feature.geometry.coordinates[0]}-${feature.geometry.coordinates[1]}-$forecastTime"
-                    val value = mutableMapOf<String, Map<String,String>>()
-
-                    feature.properties.parameters.forEach {
-                        value[it.key] = mapOf(
-                            "value" to it.value.data[index].toString(),
-                            "unit" to it.value.unit
-                        )
-                    }
-
-                    val serialized = Json.encodeToString(value)
-
-                    producer.asyncSend(
-                        ProducerRecord(
-                            "geosphere-forecast",
-                            key,
-                            serialized
-                        )
-                    )
-                }
-            }
+    // Every 12 hours
+    timer(period = 1000 * 60 * 60 * 12, daemon = true) {
+        CoroutineScope(Dispatchers.IO).launch {
+            scrapeData(locations, client, producer)
         }
     }
 
-    producer.close()
+    awaitCancellation()
+}
+
+private suspend fun scrapeData(locations: List<Location>, client: HttpClient, producer: Producer<String, Weather>) {
+    // We chunk the locations into groups of 30 to avoid hitting the API rate limit
+    for (locationC in locations.chunked(30)) {
+        val res = client.get("https://dataset.api.hub.geosphere.at/v1/timeseries/forecast/nwp-v1-1h-2500m") {
+            parameter("parameters", "t2m")
+            parameter("parameters", "rh2m")
+            parameter("parameters", "rr_acc")
+            parameter("parameters", "sp")
+
+            for (location in locationC) {
+                parameter("lat_lon", "${location.lat},${location.lon}")
+            }
+        }
+
+        val forecasts = res.body<TimeseriesForecastGeoJSONSerializer>()
+
+        for ((lIndex, location) in locationC.withIndex()) {
+            for ((tIndex, timestamp) in forecasts.timestamps.withIndex()) {
+                val key = "geosphere-${location.zipCode}-${timestamp.toInstant().epochSecond}"
+
+                val params = forecasts.features[lIndex].properties.parameters
+
+                val b = Weather.newBuilder()
+
+                b.setLatitude(location.lat)
+                b.setLongitude(location.lon)
+                b.setTimezone(forecasts.referenceTime.zone.getDisplayName(TextStyle.FULL, Locale.ENGLISH))
+                b.setZipCode(location.zipCode)
+                b.setRegion(location.name)
+                b.setTime(timestamp.toInstant().epochSecond)
+
+                b.setTemperature(params["t2m"]!!.data[tIndex]!!)
+                b.setRelativeHumidity(params["rh2m"]!!.data[tIndex]!!)
+                b.setPrecipitation(params["rr_acc"]!!.data[tIndex]!!)
+                b.setSurfacePressure(params["sp"]!!.data[tIndex]!!)
+
+                val data = b.build()
+
+                producer.asyncSend(ProducerRecord(TopicName, key, data))
+            }
+        }
+    }
 }
 
 suspend fun <K, V> Producer<K, V>.asyncSend(record: ProducerRecord<K, V>) =
     suspendCoroutine<RecordMetadata> { continuation ->
         send(record) { metadata, exception ->
-            exception?.let(continuation::resumeWithException)
-                ?: continuation.resume(metadata)
+            exception?.let(continuation::resumeWithException) ?: continuation.resume(metadata)
         }
     }
-
-infix fun ClosedRange<Double>.step(step: Double): Iterable<Double> {
-    require(start.isFinite())
-    require(endInclusive.isFinite())
-    require(step > 0.0) { "Step must be positive, was: $step." }
-    val sequence = generateSequence(start) { previous ->
-        if (previous == Double.POSITIVE_INFINITY) return@generateSequence null
-        val next = previous + step
-        if (next > endInclusive) null else next
-    }
-    return sequence.asIterable()
-}

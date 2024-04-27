@@ -1,0 +1,26 @@
+/*
+Info:
+The message keyword defines the equivalent of a record in Avro.
+Each field is declared with a name and type.
+Repeated fields are used for arrays/lists, similar to Avro's array type.
+
+The numbers from 1 to 14 represent the field numbers in Protocol Buffers.
+Each field in a Protocol Buffers message must have a unique field number.
+These field numbers are used to identify fields in the binary encoding of the message.
+ */
+syntax = "proto3";
+
+package com.fhtw.protobuf;
+
+message Weather {
+  double latitude = 1;
+  double longitude = 2;
+  string timezone = 3;
+  string zipCode = 4;
+  string region = 5;
+  int64 time = 6;
+  double temperature = 7;
+  double relativeHumidity = 8;
+  double precipitation = 10;
+  double surfacePressure = 12;
+}
