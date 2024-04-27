@@ -106,17 +106,14 @@ private suspend fun scrapeData(
             builder.setLongitude(location.lon)
             builder.setZipCode(location.zipCode)
             builder.setRegion(location.name)
-            builder.setTimezone(data.city.timezone.toString()) //TODO: has to be discussed
-
-        // TODO: Add the rest of the fields
+            builder.setTimezone(data.city.timezone.toString())
 
             builder.setTime(timestamp)
             builder.setTemperature(weather.main.temp)
             builder.setRelativeHumidity(weather.main.humidity.toDouble()) //There is no other
-            builder.setPrecipitation(weather.rain.threeHours)
+            builder.setPrecipitation(weather.rain?.threeHours)
             builder.setSurfacePressure(weather.main.pressure.toDouble())
 
-            // TODO: Add time of predictions in epoch seconds
             val key = "open-${location.zipCode}-${timestamp}"
 
             producer.asyncSend(ProducerRecord(TopicName, key, builder.build()))

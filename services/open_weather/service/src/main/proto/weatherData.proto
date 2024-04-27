@@ -21,6 +21,6 @@ message Weather {
   int64 time = 6;
   double temperature = 7;
   double relativeHumidity = 8;
-  double precipitation = 10;
+  optional double precipitation = 10;
   double surfacePressure = 12;
 }
