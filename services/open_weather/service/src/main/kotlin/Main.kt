@@ -50,7 +50,7 @@ suspend fun main() {
     )
 
     val client = HttpClient(CIO) {
-        install(ContentNegotiation){
+        install(ContentNegotiation) {
             json()
         }
     }
@@ -111,7 +111,9 @@ private suspend fun scrapeData(
             builder.setTime(timestamp)
             builder.setTemperature(weather.main.temp)
             builder.setRelativeHumidity(weather.main.humidity.toDouble()) //There is no other
-            builder.setPrecipitation(weather.rain?.threeHours)
+            if (weather.rain != null) {
+                builder.setPrecipitation(weather.rain.threeHours)
+            }
             builder.setSurfacePressure(weather.main.pressure.toDouble())
 
             val key = "open-${location.zipCode}-${timestamp}"
