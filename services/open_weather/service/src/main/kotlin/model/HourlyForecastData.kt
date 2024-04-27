@@ -56,7 +56,7 @@ data class WeatherData(
     val wind: Wind,
     val visibility: Int,
     val pop: Double,
-    val rain: Rain?,
+    val rain: Rain? = null,
     val sys: System,
     val dt_txt: String
 )
