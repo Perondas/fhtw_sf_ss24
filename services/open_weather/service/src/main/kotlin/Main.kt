@@ -14,6 +14,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.launch
+import kotlinx.serialization.json.Json
 import org.apache.kafka.clients.admin.AdminClient
 import org.apache.kafka.clients.admin.NewTopic
 import org.apache.kafka.clients.producer.Producer
@@ -51,7 +52,7 @@ suspend fun main() {
 
     val client = HttpClient(CIO) {
         install(ContentNegotiation) {
-            json()
+            Json { ignoreUnknownKeys = true }
         }
     }
 
