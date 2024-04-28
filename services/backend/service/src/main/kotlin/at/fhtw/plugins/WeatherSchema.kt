@@ -1,9 +1,7 @@
 package at.fhtw.plugins
 
 import at.fhtw.plugins.dtos.WeatherDto
-import com.fhtw.protobuf.WeatherData.Weather
 import kotlinx.coroutines.*
-import kotlinx.serialization.Serializable
 import java.sql.Connection
 import java.sql.Statement
 import java.sql.Timestamp

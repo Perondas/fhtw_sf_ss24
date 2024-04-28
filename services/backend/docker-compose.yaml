@@ -13,6 +13,7 @@ x-postgres-common:
 networks:
   kafka-net:
     external: true
+  backend-net:
 
 services:
   backend:
@@ -22,10 +23,14 @@ services:
     environment:
       - KAFKA_SERVER=kafka1:9092
       - SCHEMA_SERVER=http://schema-registry:8081
+      - POSTGRES_URL=jdbc:postgresql://write.db:5432,read.db:5432/db?targetServerType=primary
     networks:
       - kafka-net
+      - backend-net
     depends_on:
       - postgres_primary
+      - postgres_replica_1
+      - postgres_replica_2
   postgres_primary:
     <<: *postgres-common
     ports:
@@ -46,6 +51,8 @@ services:
       -c hot_standby_feedback=on
     volumes:
       - ./00_init.sql:/docker-entrypoint-initdb.d/00_init.sql
+    networks:
+      - backend-net
 
   postgres_replica_1:
     <<: *postgres-common
@@ -70,6 +77,9 @@ services:
       "
     depends_on:
       - postgres_primary
+    networks:
+      - backend-net
+
   postgres_replica_2:
     <<: *postgres-common
     hostname: "read.db"
@@ -92,3 +102,5 @@ services:
       "
     depends_on:
       - postgres_primary
+    networks:
+      - backend-net

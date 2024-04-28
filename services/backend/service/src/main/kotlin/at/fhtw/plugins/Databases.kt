@@ -13,11 +13,7 @@ import org.apache.kafka.clients.consumer.KafkaConsumer
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.common.serialization.Serdes
-import org.apache.kafka.streams.KafkaStreams
-import org.apache.kafka.streams.StreamsBuilder
 import org.apache.kafka.streams.StreamsConfig
-import org.apache.kafka.streams.kstream.Consumed
-import org.apache.kafka.streams.kstream.KStream
 import java.time.Duration
 
 fun Application.configureDatabases() {
@@ -40,6 +36,7 @@ fun Application.configureDatabases() {
         "security.protocol" to "PLAINTEXT",
         "schema.registry.url" to (System.getenv("SCHEMA_SERVER") ?: "http://localhost:8081"),
         "application.id" to "backend1",
+        /*"group.id" to "aggregator",*/
         StreamsConfig.DEFAULT_KEY_SERDE_CLASS_CONFIG to Serdes.String().javaClass.name,
         StreamsConfig.DEFAULT_VALUE_SERDE_CLASS_CONFIG to specificWeatherSerde.javaClass.name,
         "enable.auto.commit" to "false"
