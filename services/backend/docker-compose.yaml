@@ -31,6 +31,9 @@ services:
       - postgres_primary
       - postgres_replica_1
       - postgres_replica_2
+    ports:
+      - "8080:8080"
+
   postgres_primary:
     <<: *postgres-common
     ports:

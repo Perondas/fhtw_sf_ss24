@@ -36,7 +36,7 @@ fun Application.configureDatabases() {
         "security.protocol" to "PLAINTEXT",
         "schema.registry.url" to (System.getenv("SCHEMA_SERVER") ?: "http://localhost:8081"),
         "application.id" to "backend1",
-        /*"group.id" to "aggregator",*/
+        "group.id" to "aggregator",
         StreamsConfig.DEFAULT_KEY_SERDE_CLASS_CONFIG to Serdes.String().javaClass.name,
         StreamsConfig.DEFAULT_VALUE_SERDE_CLASS_CONFIG to specificWeatherSerde.javaClass.name,
         "enable.auto.commit" to "false"
