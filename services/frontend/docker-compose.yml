@@ -1,0 +1,37 @@
+version: '3.8'
+
+networks:
+  nuxt-web:
+    external: true
+  backend-net:
+
+services:
+  nuxt:
+    build:
+      context: ./nuxt
+      dockerfile: Dockerfile
+    environment:
+      - HOST=0.0.0.0
+      - PORT=3000
+    ports:
+      - "3000:3000"
+    networks:
+      - nuxt-web
+      - backend-net
+
+  nginx:
+    # image: nginx:latest
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+    depends_on:
+      - nuxt
+    networks:
+      - nuxt-web
+
+volumes:
+  nuxt_data:
